@@ -49,13 +49,7 @@ class KeywordQueryEventListener(EventListener):
             on_enter = {'alt_enter': False, 'pid': pid, 'cmd': cmd}
             on_alt_enter = on_enter.copy()
             on_alt_enter['alt_enter'] = True
-            if event.get_argument():
-                if event.get_argument() in cmd:
-                    yield ExtensionSmallResultItem(icon=exec_icon,
-                                                   name=name,
-                                                   on_enter=ExtensionCustomAction(on_enter),
-                                                   on_alt_enter=ExtensionCustomAction(on_alt_enter, keep_app_open=True))
-            else:
+            if not event.get_argument() or event.get_argument() in cmd:
                 yield ExtensionSmallResultItem(icon=exec_icon,
                                                name=name,
                                                on_enter=ExtensionCustomAction(on_enter),
