@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import gi
 
@@ -8,7 +9,7 @@ gi.require_version('Notify', '0.7')
 from locale import atof, setlocale, LC_NUMERIC
 from gi.repository import Notify
 from itertools import islice
-from subprocess import Popen, PIPE, check_call, CalledProcessError
+from subprocess import Popen, PIPE, check_call, check_output, CalledProcessError
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.shared.event import KeywordQueryEvent, ItemEnterEvent
@@ -19,7 +20,6 @@ from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAct
 
 logger = logging.getLogger(__name__)
 ext_icon = 'images/icon.png'
-exec_icon = 'images/executable.png'
 dead_icon = 'images/dead.png'
 
 
@@ -44,6 +44,7 @@ class KeywordQueryEventListener(EventListener):
         return RenderResultListAction(list(islice(self.generate_results(event), 15)))
 
     def generate_results(self, event):
+        exec_icon = get_theme_icon('application-x-executable', 48)
         for (pid, cpu, cmd) in get_process_list():
             name = '[%s%% CPU] %s' % (cpu, cmd) if cpu > 1 else cmd
             on_enter = {'alt_enter': False, 'pid': pid, 'cmd': cmd}
@@ -117,6 +118,10 @@ def get_process_list():
 
         yield (pid, cpu, cmd)
 
+def get_theme_icon(name, size):
+    # Run each call in a new throwaway thread to escape Gtk.IconTheme.get_default()'s cache-bug/feature
+    getIconCode = "Gtk.IconTheme.get_default().lookup_icon('{}', {}, 0).get_filename()".format(name, size)
+    return check_output([sys.executable, '-c', "import gi; gi.require_version('Gtk', '3.0'); from gi.repository import Gtk; print({})".format(getIconCode)]).rstrip()
 
 if __name__ == '__main__':
     ProcessKillerExtension().run()
