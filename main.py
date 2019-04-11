@@ -34,10 +34,10 @@ class ProcessKillerExtension(Extension):
 class KeywordQueryEventListener(EventListener):
 
     def on_event(self, event, extension):
-        return RenderResultListAction(list(islice(self.generate_results(event), 15)))
-
-    def generate_results(self, event):
         exec_icon = get_theme_icon('application-x-executable', 48)
+        return RenderResultListAction(list(islice(self.generate_results(event, exec_icon), 15)))
+
+    def generate_results(self, event, exec_icon):
         for (pid, cpu, cmd) in get_process_list():
             name = '[%s%% CPU] %s' % (cpu, cmd) if cpu > 1 else cmd
             on_enter = {'alt_enter': False, 'pid': pid, 'cmd': cmd}
