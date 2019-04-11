@@ -11,6 +11,13 @@
             "type": "keyword",
             "name": "Process Killer",
             "default_value": "kill"
+        },
+        {
+            "id": "verification_timeout",
+            "type": "input",
+            "name": "Verification timeout",
+            "description": "Seconds to wait before asking to force-exit process (set to 0 to disable)",
+            "default_value": "3"
         }
     ]
 }

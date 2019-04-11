@@ -9,7 +9,7 @@ gi.require_version('Notify', '0.7')
 from locale import atof, setlocale, LC_NUMERIC
 from gi.repository import Notify
 from itertools import islice
-from subprocess import Popen, PIPE, check_call, check_output, CalledProcessError
+from subprocess import Popen, PIPE, call, check_output, CalledProcessError
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.shared.event import KeywordQueryEvent, ItemEnterEvent
@@ -20,7 +20,6 @@ from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAct
 
 logger = logging.getLogger(__name__)
 ext_icon = 'images/icon.png'
-dead_icon = 'images/dead.png'
 
 
 class ProcessKillerExtension(Extension):
@@ -30,12 +29,6 @@ class ProcessKillerExtension(Extension):
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
         self.subscribe(ItemEnterEvent, ItemEnterEventListener())
         setlocale(LC_NUMERIC, '')  # set to OS default locale;
-
-    def show_notification(self, title, text=None, icon=ext_icon):
-        logger.debug('Show notification: %s' % text)
-        icon_full_path = os.path.join(os.path.dirname(__file__), icon)
-        Notify.init("KillerExtension")
-        Notify.Notification.new(title, text, icon_full_path).show()
 
 
 class KeywordQueryEventListener(EventListener):
@@ -59,18 +52,14 @@ class KeywordQueryEventListener(EventListener):
 
 class ItemEnterEventListener(EventListener):
 
-    def kill(self, extension, pid, signal):
-        cmd = ['kill', '-s', signal, pid]
+    def kill(self, extension, pid, signal, verification_timeout):
+        cmd = [sys.executable, 'kill.py', pid, signal, str(verification_timeout)]
         logger.info(' '.join(cmd))
 
         try:
-            check_call(cmd) == 0
-            extension.show_notification("Done", "It's dead now", icon=dead_icon)
-        except CalledProcessError as e:
-            extension.show_notification("Error", "'kill' returned code %s" % e.returncode)
+            call(cmd) == 0
         except Exception as e:
             logger.error('%s: %s' % (type(e).__name__, e.message))
-            extension.show_notification("Error", "Check the logs")
             raise
 
     def show_signal_options(self, data):
@@ -88,10 +77,11 @@ class ItemEnterEventListener(EventListener):
 
     def on_event(self, event, extension):
         data = event.get_data()
+        timeout = extension.preferences['verification_timeout']
         if data['alt_enter']:
             return self.show_signal_options(data)
         else:
-            self.kill(extension, data['pid'], data.get('signal', 'TERM'))
+            self.kill(extension, data['pid'], data.get('signal', 'TERM'), timeout)
 
 
 def get_process_list():
